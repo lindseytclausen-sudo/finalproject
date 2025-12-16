@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <a href="scratch.html" style="font-size: xx-large;">Back</a>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPS Battle Simulator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-rock: #8A9A9A; /* Muted Stone Grey */
+            --color-paper: #6FA8D8; /* Calm Blue */
+            --color-scissors: #D86F6F; /* Sharp Red */
+            --color-bg: #0d1117;
+            --color-ui-bg: rgba(255, 255, 255, 0.1);
+            --color-text: #ffffff;
+            --color-border: rgba(255, 255, 255, 0.2);
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            display: grid;
+            place-items: center;
+        }
+
+        /* --- Northern Lights Background --- */
+        .aurora-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .aurora {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.3;
+            filter: blur(80px);
+        }
+
+        .aurora-1 {
+            width: 50vw;
+            height: 60vh;
+            background: radial-gradient(circle, #3a7bd5 0%, rgba(0, 128, 0, 0) 70%);
+            animation: move-aurora-1 20s infinite alternate ease-in-out;
+        }
+
+        .aurora-2 {
+            width: 60vw;
+            height: 70vh;
+            background: radial-gradient(circle, #00c6ff 0%, rgba(0, 255, 0, 0) 70%);
+            animation: move-aurora-2 25s infinite alternate ease-in-out;
+        }
+
+        .aurora-3 {
+            width: 40vw;
+            height: 50vh;
+            background: radial-gradient(circle, #93f9b9 0%, rgba(144, 238, 144, 0) 70%);
+            animation: move-aurora-3 15s infinite alternate ease-in-out;
+        }
+
+        @keyframes move-aurora-1 {
+            from { transform: translate(-20vw, -30vh) rotate(0deg); }
+            to { transform: translate(30vw, 40vh) rotate(60deg); }
+        }
+        @keyframes move-aurora-2 {
+            from { transform: translate(50vw, -10vh) rotate(30deg); }
+            to { transform: translate(0vw, 60vh) rotate(-30deg); }
+        }
+        @keyframes move-aurora-3 {
+            from { transform: translate(10vw, 40vh) rotate(-20deg); }
+            to { transform: translate(70vw, -20vh) rotate(40deg); }
+        }
+        /* --- End Background --- */
+
+        .game-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 95%;
+            max-width: 1200px;
+            margin: 20px auto;
+            background: var(--color-ui-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            padding: 16px;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .canvas-container {
+            flex: 3;
+            min-width: 300px;
+            aspect-ratio: 16 / 9;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--color-border);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .controls-stats-container {
+            flex: 1;
+            min-width: 250px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .controls, .stats {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid var(--color-border);
+        }
+
+        h2 {
+            font-weight: 600;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .control-group {
+            margin-bottom: 12px;
+        }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .control-group span {
+            font-weight: 600;
+            color: #f0f0f0;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .start-button {
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+            background: #4a90e2;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+
+        .start-button:hover {
+            background: #357ABD;
+        }
+        
+        .start-button:active {
+            transform: scale(0.98);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        
+        .stat-item span {
+            font-size: 0.9rem;
+            font-weight: 400;
+            margin-top: 4px;
+        }
+
+        #rock-count { color: var(--color-rock); border: 2px solid var(--color-rock); }
+        #paper-count { color: var(--color-paper); border: 2px solid var(--color-paper); }
+        #scissors-count { color: var(--color-scissors); border: 2px solid var(--color-scissors); }
+
+        /* --- Win Modal --- */
+        #win-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+            z-index: 100;
+        }
+
+        #win-modal.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .win-content {
+            text-align: center;
+            /* animation: epic-appear 1s cubic-bezier(0.25, 1, 0.5, 1) forwards; */ /* Managed by JS now */
+            transform: scale(0.5) translateY(50px);
+            opacity: 0;
+            transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.5s ease;
+        }
+        
+        .win-icon {
+            font-size: 120px;
+            line-height: 1;
+            filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.5));
+        }
+
+        .win-text {
+            font-size: 3.5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        
+        #win-text-rock { background-image: linear-gradient(45deg, var(--color-rock), #d4d4d4); }
+        #win-text-paper { background-image: linear-gradient(45deg, var(--color-paper), #b1d4f5); }
+        #win-text-scissors { background-image: linear-gradient(45deg, var(--color-scissors), #f5b1b1); }
+        
+        /* Removed keyframes as JS handles the reset now */
+        
+        /* Responsive */
+        @media (max-width: 900px) {
+            .main-content {
+                flex-direction: column;
+            }
+            .canvas-container {
+                width: 100%;
+                aspect-ratio: 4 / 3;
+            }
+            .controls-stats-container {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Northern Lights Background -->
+    <div class="aurora-background">
+        <div class="aurora aurora-1"></div>
+        <div class="aurora aurora-2"></div>
+        <div class="aurora aurora-3"></div>
+    </div>
+
+    <!-- Game UI -->
+    <div class="game-wrapper">
+        <div class="main-content">
+            <div class="canvas-container">
+                <canvas id="game-canvas"></canvas>
+            </div>
+
+            <div class="controls-stats-container">
+                <!-- Controls -->
+                <div class="controls">
+                    <h2>Controls</h2>
+                    <div class="control-group">
+                        <label for="rock-slider">Rock <span id="rock-val">5</span></label>
+                        <input type="range" id="rock-slider" min="3" max="10" value="5">
+                    </div>
+                    <div class="control-group">
+                        <label for="paper-slider">Paper <span id="paper-val">5</span></label>
+                        <input type="range" id="paper-slider" min="3" max="10" value="5">
+                    </div>
+                    <div class="control-group">
+                        <label for="scissors-slider">Scissors <span id="scissors-val">5</span></label>
+                        <input type="range" id="scissors-slider" min="3" max="10" value="5">
+                    </div>
+                    <div class="control-group">
+                        <label for="size-slider">Size <span id="size-val">15</span></label>
+                        <input type="range" id="size-slider" min="5" max="30" value="15">
+                    </div>
+                    <div class="control-group">
+                        <label for="speed-slider">Speed <span id="speed-val">2</span></label>
+                        <input type="range" id="speed-slider" min="1" max="5" value="2" step="0.1">
+                    </div>
+                    <button id="start-button" class="start-button">Start / Reset</button>
+                </div>
+                
+                <!-- Stats -->
+                <div class="stats">
+                    <h2>Live Count</h2>
+                    <div class="stats-grid">
+                        <div id="rock-count" class="stat-item">0<span>Rock</span></div>
+                        <div id="paper-count" class="stat-item">0<span>Paper</span></div>
+                        <div id="scissors-count" class="stat-item">0<span>Scissors</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Win Modal -->
+    <div id="win-modal">
+        <div class="win-content">
+            <div id="win-icon" class="win-icon"></div>
+            <div id="win-text" class="win-text"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const canvas = document.getElementById('game-canvas');
+            const ctx = canvas.getContext('2d');
+            const canvasContainer = document.querySelector('.canvas-container');
+
+            const rockSlider = document.getElementById('rock-slider');
+            const paperSlider = document.getElementById('paper-slider');
+            const scissorsSlider = document.getElementById('scissors-slider');
+            const sizeSlider = document.getElementById('size-slider');
+            const speedSlider = document.getElementById('speed-slider');
+
+            const rockVal = document.getElementById('rock-val');
+            const paperVal = document.getElementById('paper-val');
+            const scissorsVal = document.getElementById('scissors-val');
+            const sizeVal = document.getElementById('size-val');
+            const speedVal = document.getElementById('speed-val');
+
+            const rockCountEl = document.getElementById('rock-count');
+            const paperCountEl = document.getElementById('paper-count');
+            const scissorsCountEl = document.getElementById('scissors-count');
+
+            const startButton = document.getElementById('start-button');
+            const winModal = document.getElementById('win-modal');
+            const winIcon = document.getElementById('win-icon');
+            const winText = document.getElementById('win-text');
+            
+            // --- FIX ---
+            // Moved winContent declaration to the top-level scope
+            const winContent = document.querySelector('.win-content');
+
+            // --- Game Constants ---
+            const ICONS = {
+                rock: '🪨',
+                paper: '📄',
+                scissors: '✂️'
+            };
+            const COLORS = {
+                rock: getComputedStyle(document.documentElement).getPropertyValue('--color-rock'),
+                paper: getComputedStyle(document.documentElement).getPropertyValue('--color-paper'),
+                scissors: getComputedStyle(document.documentElement).getPropertyValue('--color-scissors')
+            };
+
+            // --- Game State ---
+            let particles = [];
+            let animationId = null;
+            let config = {
+                rock: parseInt(rockSlider.value),
+                paper: parseInt(paperSlider.value),
+                scissors: parseInt(scissorsSlider.value),
+                size: parseInt(sizeSlider.value),
+                speed: parseFloat(speedSlider.value)
+            };
+
+            // --- Particle Class ---
+            class Particle {
+                constructor(x, y, type, size, speed) {
+                    this.x = x;
+                    this.y = y;
+                    this.size = size;
+                    this.radius = size * 0.75; // Collision mask
+                    this.type = type;
+                    this.speed = speed;
+                    this.vx = (Math.random() - 0.5) * this.speed;
+                    this.vy = (Math.random() - 0.5) * this.speed;
+                    this.updateType(type);
+                }
+
+                updateType(newType) {
+                    this.type = newType;
+                    this.icon = ICONS[newType];
+                    this.color = COLORS[newType];
+                }
+
+                draw() {
+                    ctx.font = `${this.size}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    // --- MODIFICATION START ---
+                    // User requested border for rock/paper, keep fill for scissors
+                    
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+
+                    if (this.type === 'rock' || this.type === 'paper') {
+                        // Draw border only
+                        ctx.strokeStyle = this.color;
+                        ctx.lineWidth = 3; // Make the border visible
+                        ctx.globalAlpha = 0.8;
+                        ctx.stroke();
+                    } else {
+                        // Keep filled circle for scissors
+                        ctx.fillStyle = this.color;
+                        ctx.globalAlpha = 0.5; // Make circle slightly transparent
+                        ctx.fill();
+                    }
+                    
+                    ctx.globalAlpha = 1.0; // Reset alpha
+                    // --- MODIFICATION END ---
+                    
+                    // Draw emoji on top
+                    ctx.fillText(this.icon, this.x, this.y);
+                }
+
+                update(particles) {
+                    // Wall collision
+                    if (this.x - this.radius <= 0 || this.x + this.radius >= canvas.width) {
+                        this.vx *= -1;
+                        this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x)); // Prevent sticking
+                    }
+                    if (this.y - this.radius <= 0 || this.y + this.radius >= canvas.height) {
+                        this.vy *= -1;
+                        this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y)); // Prevent sticking
+                    }
+
+                    // Move
+                    this.x += this.vx;
+                    this.y += this.vy;
+                }
+            }
+
+            // --- Collision Functions ---
+            function checkCollision(p1, p2) {
+                const dx = p1.x - p2.x;
+                const dy = p1.y - p2.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                return distance < p1.radius + p2.radius;
+            }
+
+            function resolveCollision(p1, p2) {
+                // Battle logic
+                if (p1.type !== p2.type) {
+                    if (
+                        (p1.type === 'rock' && p2.type === 'scissors') ||
+                        (p1.type === 'scissors' && p2.type === 'paper') ||
+                        (p1.type === 'paper' && p2.type === 'rock')
+                    ) {
+                        p2.updateType(p1.type); // p1 wins
+                    } else {
+                        p1.updateType(p2.type); // p2 wins
+                    }
+                }
+
+                // Bounce
+                // Simple velocity swap for bounce
+                [p1.vx, p2.vx] = [p2.vx, p1.vx];
+                [p1.vy, p2.vy] = [p2.vy, p1.vy];
+
+                // Prevent overlap by moving them apart slightly
+                const dx = p1.x - p2.x;
+                const dy = p1.y - p2.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance === 0) return; // Avoid division by zero
+                const overlap = (p1.radius + p2.radius) - distance;
+                const moveX = (dx / distance) * overlap * 0.5;
+                const moveY = (dy / distance) * overlap * 0.5;
+
+                p1.x += moveX;
+                p1.y += moveY;
+                p2.x -= moveX;
+                p2.y -= moveY;
+            }
+
+            // --- Game Loop ---
+            function gameLoop() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                let counts = { rock: 0, paper: 0, scissors: 0 };
+                let total = particles.length;
+
+                // Update and draw particles
+                for (let i = 0; i < total; i++) {
+                    const p1 = particles[i];
+                    p1.update(particles);
+
+                    // Check collisions with other particles
+                    for (let j = i + 1; j < total; j++) {
+                        const p2 = particles[j];
+                        if (checkCollision(p1, p2)) {
+                            resolveCollision(p1, p2);
+                        }
+                    }
+
+                    p1.draw();
+                    counts[p1.type]++;
+                }
+
+                // Update UI counts
+                rockCountEl.firstChild.textContent = counts.rock;
+                paperCountEl.firstChild.textContent = counts.paper;
+                scissorsCountEl.firstChild.textContent = counts.scissors;
+
+                // Check for win condition
+                if (counts.rock === total || counts.paper === total || counts.scissors === total) {
+                    stopGame();
+                    showWinScreen(counts);
+                } else {
+                    animationId = requestAnimationFrame(gameLoop);
+                }
+            }
+            
+            // --- Game Management ---
+            function initGame() {
+                // Stop any existing loop
+                stopGame();
+
+                // Resize canvas
+                resizeCanvas();
+                
+                // Reset particles array
+                particles = [];
+                
+                // Read config from sliders
+                config = {
+                    rock: parseInt(rockSlider.value),
+                    paper: parseInt(paperSlider.value),
+                    scissors: parseInt(scissorsSlider.value),
+                    size: parseInt(sizeSlider.value),
+                    speed: parseFloat(speedSlider.value)
+                };
+
+                // Create particles
+                createParticles('rock', config.rock);
+                createParticles('paper', config.paper);
+                createParticles('scissors', config.scissors);
+
+                // Initial draw
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let counts = { rock: 0, paper: 0, scissors: 0 };
+                particles.forEach(p => {
+                    p.draw();
+                    counts[p.type]++;
+                });
+
+                // Update UI counts
+                rockCountEl.firstChild.textContent = counts.rock;
+                paperCountEl.firstChild.textContent = counts.paper;
+                scissorsCountEl.firstChild.textContent = counts.scissors;
+
+                // Hide win modal
+                winModal.classList.remove('show');
+                // --- FIX ---
+                // Now winContent is defined and this will work
+                winContent.style.opacity = 0; // Reset for animation
+                winContent.style.transform = 'scale(0.5) translateY(50px)';
+            }
+            
+            function createParticles(type, count) {
+                for (let i = 0; i < count; i++) {
+                    let size = config.size;
+                    let x = Math.random() * (canvas.width - size * 2) + size;
+                    let y = Math.random() * (canvas.height - size * 2) + size;
+                    // Avoid spawning particles on top of each other
+                    let attempts = 0;
+                    while (attempts < 50) {
+                        let collision = false;
+                        for (const p of particles) {
+                            const dx = p.x - x;
+                            const dy = p.y - y;
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+                            if (distance < p.radius * 2) {
+                                collision = true;
+                                break;
+                            }
+                        }
+                        if (!collision) break;
+                        x = Math.random() * (canvas.width - size * 2) + size;
+                        y = Math.random() * (canvas.height - size * 2) + size;
+                        attempts++;
+                    }
+                    particles.push(new Particle(x, y, type, size, config.speed));
+                }
+            }
+
+            function startGame() {
+                if (animationId) {
+                    stopGame(); // If running, reset
+                }
+                initGame(); // Set up the game
+                animationId = requestAnimationFrame(gameLoop); // Start the loop
+                startButton.textContent = "Reset";
+            }
+            
+            function stopGame() {
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                    startButton.textContent = "Start";
+                }
+            }
+            
+            function showWinScreen(counts) {
+                let winnerType;
+                if (counts.rock > 0) winnerType = 'rock';
+                else if (counts.paper > 0) winnerType = 'paper';
+                else winnerType = 'scissors';
+
+                winIcon.textContent = ICONS[winnerType];
+                winText.textContent = `${winnerType} wins!`;
+                
+                // Clear existing classes and add the correct one for styling
+                winText.className = "win-text";
+                winText.classList.add(`win-text-${winnerType}`);
+                
+                // Force reflow for animation
+                // --- FIX ---
+                // Removed local const, as it's now global
+                winContent.style.opacity = 0;
+                winContent.style.transform = 'scale(0.5) translateY(50px)';
+                
+                winModal.classList.add('show');
+                
+                // Trigger animation
+                setTimeout(() => {
+                    winContent.style.opacity = 1;
+                    winContent.style.transform = 'scale(1) translateY(0)';
+                }, 50); // Small delay to ensure CSS transition triggers
+            }
+            
+            function resizeCanvas() {
+                canvas.width = canvasContainer.clientWidth;
+                canvas.height = canvasContainer.clientHeight;
+            }
+
+            // --- Event Listeners ---
+            
+            // Link sliders to value displays
+            rockSlider.addEventListener('input', e => rockVal.textContent = e.target.value);
+            paperSlider.addEventListener('input', e => paperVal.textContent = e.target.value);
+            scissorsSlider.addEventListener('input', e => scissorsVal.textContent = e.target.value);
+            sizeSlider.addEventListener('input', e => sizeVal.textContent = e.target.value);
+            speedSlider.addEventListener('input', e => speedVal.textContent = e.target.value);
+
+            // Start/Reset button
+            startButton.addEventListener('click', startGame);
+
+            // Resize listener
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+                initGame(); // Reset the game on resize
+            });
+            
+            // Initial setup
+            initGame();
+        });
+    </script>
+</body>
+</html>
